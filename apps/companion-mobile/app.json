@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "DSH Companion",
+    "slug": "dsh-companion",
+    "version": "0.1.0",
+    "scheme": "dshcompanion",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0b0d12",
+    "platforms": ["ios", "android"],
+    "ios": {
+      "bundleIdentifier": "dev.dsh.companion",
+      "supportsTablet": false,
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+    "android": {
+      "package": "dev.dsh.companion",
+      "useCleartextTraffic": true
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#4f6bff"
+        }
+      ]
+    ]
+  }
+}

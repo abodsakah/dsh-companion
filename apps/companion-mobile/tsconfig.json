@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@dsh-companion/protocol": ["../../packages/companion-protocol/src/index.ts"]
+    }
+  },
+  "include": ["index.ts", "src", "../../packages/companion-protocol/src"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "dsh-companion-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "scripts": {
+    "build": "pnpm --filter @dsh-companion/protocol run build && pnpm --filter dsh-companion run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm --filter dsh-companion run test"
+  }
+}
