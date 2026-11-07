@@ -8,6 +8,7 @@ export const HEALTH_PATH = `${COMPANION_API_PREFIX}/health`
 export const PENDING_PATH = `${COMPANION_API_PREFIX}/pending`
 export const ANSWER_PATH = `${COMPANION_API_PREFIX}/answer`
 export const TEST_PATH = `${COMPANION_API_PREFIX}/test`
+export const CREDENTIALS_PATH = `${COMPANION_API_PREFIX}/credentials`
 
 export const COMPANION_PROTOCOL_VERSION = 1
 
@@ -88,6 +89,11 @@ export interface CompanionAnswerReceipt {
 export interface CompanionTestReceipt {
   readonly ok: boolean
   readonly sent: number
+}
+
+/** Launch URL minted by the host for the API credential exchange. */
+export interface CompanionCredentials {
+  readonly launchUrl: string
 }
 
 export interface CompanionError {

@@ -148,3 +148,36 @@ The app registers a `companion.pending` notification category: **Approve / Rejec
 pnpm -r typecheck    # protocol, plugin, and mobile app all typecheck
 pnpm test            # plugin unit tests (12)
 ```
+
+## Phase 1: native chat client
+
+The app now speaks the DSH gateway protocol directly and shows your real chats:
+
+- **Chats screen** — your host's session list, live-updating; create a new chat with one tap.
+- **Chat screen** — open a session, send prompts (queued turns), watch replies stream in.
+- The companion (approvals/questions/push) is still there — "Companion" link in the header.
+
+### How it connects
+
+1. The app authenticates to the plugin with the companion token and fetches `/dsh-companion/credentials`, which returns the host's current launch URL (`authenticatedUrl`).
+2. It exchanges the launch token on `GET /connect?interactions=answer` for DSH's signed API cookie.
+3. With that cookie it talks to the same `/api` RPC channel and `/api/remote.mux` WebSocket the browser client uses, composing DSH's own client packages: typert registry → connection → API gateway → file upload → session controller.
+
+### Setup (DSH workspace link)
+
+The DSH client packages are consumed from a DeepSeek Harness checkout (the published npm set is incomplete), matching your installed CLI version:
+
+```sh
+./scripts/link-with-dsh.sh          # clones v0.2.2-rc.1, links, installs, builds
+cd deepseek-harness/apps/companion-mobile
+npx expo start
+```
+
+The script syncs the app into the clone's `apps/` workspace and injects `workspace:*` dependencies; re-run it after pulling app updates. Develop and run Expo from the linked folder. The ambient declarations in `apps/companion-mobile/src/dsh/dsh-types.d.ts` are superseded by the real packages once linked.
+
+### Status and next phases
+
+- Phase 1 (this): session list, create, chat with queued prompts, live event stream.
+- Phase 2: workspaces/projects (create sessions against filesystem directories).
+- Phase 3: in-chat questions/permissions (the companion plugin already holds them; the chat view will render them inline).
+- Phase 4: terminal; Phase 5: teams & subagents; Phase 6: polish (deep links, background reconnect, full micro-interactions).

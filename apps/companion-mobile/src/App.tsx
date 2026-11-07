@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Platform } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
+import * as Notifications from 'expo-notifications'
 import { CompanionApi } from './api'
-import { log } from './log'
 import { ConnectScreen } from './screens/ConnectScreen'
 import { HomeScreen } from './screens/HomeScreen'
+import { SessionsScreen } from './screens/SessionsScreen'
+import { ChatScreen } from './screens/ChatScreen'
 import { acquirePushToken, setupPush } from './push'
+import { createDshRuntime, type DshRuntime } from './dsh/runtime'
+import { exchangeLaunchToken, launchTokenFromUrl } from './dsh/credentials'
 import {
   loadDeviceId,
   loadSettings,
@@ -13,10 +17,18 @@ import {
   saveSettings,
   type CompanionSettings,
 } from './settings'
+import { log } from './log'
+
+type View =
+  | { readonly name: 'sessions' }
+  | { readonly name: 'chat'; readonly sessionId: string }
+  | { readonly name: 'companion' }
 
 export default function App(): React.ReactElement {
   const [settings, setSettings] = useState<CompanionSettings | undefined>(undefined)
   const [booted, setBooted] = useState(false)
+  const [runtime, setRuntime] = useState<DshRuntime | undefined>(undefined)
+  const [view, setView] = useState<View>({ name: 'sessions' })
   const apiRef = useRef<CompanionApi | undefined>(undefined)
   const [api, setApi] = useState<CompanionApi | undefined>(undefined)
 
@@ -58,6 +70,7 @@ export default function App(): React.ReactElement {
 
   const openPending = useCallback((pendingId: string): void => {
     log(`notify: opened for pendingId=${pendingId}`)
+    setView({ name: 'companion' })
   }, [])
 
   useEffect(() => {
@@ -75,6 +88,15 @@ export default function App(): React.ReactElement {
     return cleanup
   }, [api, registerPushToken, answerFromNotification, openPending, settings?.expoProjectId])
 
+  const bootRuntime = async (candidate: CompanionApi): Promise<DshRuntime> => {
+    const credentials = await candidate.credentials()
+    const launchToken = launchTokenFromUrl(credentials.launchUrl)
+    if (launchToken === undefined) throw new Error('host returned a launch URL without a token')
+    const cookie = await exchangeLaunchToken(credentials.hostUrlForClient, launchToken)
+    const next = createDshRuntime({ hostUrl: credentials.hostUrlForClient, cookie })
+    return next
+  }
+
   const connect = async (next: CompanionSettings): Promise<string | undefined> => {
     const candidate = new CompanionApi(next.hostUrl, next.companionToken)
     try {
@@ -83,14 +105,26 @@ export default function App(): React.ReactElement {
     } catch (cause) {
       return `Could not reach the host: ${String(cause)}`
     }
+    let nextRuntime: DshRuntime | undefined
+    try {
+      nextRuntime = await bootRuntime(candidate)
+    } catch (cause) {
+      log(`connect: dsh runtime boot failed ${String(cause)}`)
+      return `Companion connected, but the chat runtime failed: ${String(cause)}`
+    }
     await saveSettings(next)
     apiRef.current = candidate
     setApi(candidate)
     setSettings(next)
+    runtime?.dispose()
+    setRuntime(nextRuntime)
+    setView({ name: 'sessions' })
     return undefined
   }
 
   const disconnect = async (): Promise<void> => {
+    runtime?.dispose()
+    setRuntime(undefined)
     await saveSettings({ hostUrl: '', companionToken: '', expoProjectId: '' })
     apiRef.current = undefined
     setApi(undefined)
@@ -104,7 +138,23 @@ export default function App(): React.ReactElement {
   return (
     <>
       <StatusBar style="light" />
-      <HomeScreen api={api} onDisconnect={() => { void disconnect() }} />
+      {runtime !== undefined && view.name === 'sessions'
+        ? <SessionsScreen
+            sessions={runtime.sessions}
+            onOpen={sessionId => { setView({ name: 'chat', sessionId }) }}
+            onCompanion={() => { setView({ name: 'companion' }) }}
+          />
+        : undefined}
+      {runtime !== undefined && view.name === 'chat'
+        ? <ChatScreen
+            sessions={runtime.sessions}
+            sessionId={view.sessionId}
+            onBack={() => { setView({ name: 'sessions' }) }}
+          />
+        : undefined}
+      {view.name === 'companion' || runtime === undefined
+        ? <HomeScreen api={api} onDisconnect={() => { void disconnect() }} />
+        : undefined}
     </>
   )
 }

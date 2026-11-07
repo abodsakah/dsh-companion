@@ -1,5 +1,6 @@
 import type {
   CompanionAnswerReceipt,
+  CompanionCredentials,
   CompanionDeviceReceipt,
   CompanionHealth,
   CompanionPendingItem,
@@ -72,5 +73,12 @@ export class CompanionApi {
 
   test(): Promise<CompanionTestReceipt> {
     return this.request<CompanionTestReceipt>('/dsh-companion/test', { method: 'POST' })
+  }
+
+  credentials(): Promise<CompanionCredentials & { readonly hostUrlForClient: string }> {
+    return this.request<CompanionCredentials>('/dsh-companion/credentials').then(credentials => ({
+      ...credentials,
+      hostUrlForClient: this.hostUrl,
+    }))
   }
 }

@@ -4,6 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import {
   ANSWER_PATH,
   COMPANION_PROTOCOL_VERSION,
+  CREDENTIALS_PATH,
   DEVICES_PATH,
   DEVICE_UNREGISTER_PATH,
   HEALTH_PATH,
@@ -12,6 +13,7 @@ import {
   parseAnswerRequest,
   parseDeviceRegistration,
   parseUnregisterRequest,
+  type CompanionCredentials,
   type CompanionHealth,
 } from '@dsh-companion/protocol'
 import type { DeviceRegistry } from './devices.js'
@@ -23,6 +25,7 @@ const BODY_LIMIT_BYTES = 64 * 1024
 
 interface ConnectionLike {
   requestRejection?: (request: IncomingMessage) => 401 | 403 | undefined
+  authenticatedUrl?: (baseUrl: string) => string
 }
 
 interface WebServerLike {
@@ -172,6 +175,22 @@ export function registerRoutes(
       return
     }
     sendJson(res, 200, { ok: outcome === 'answered', outcome })
+  })
+
+  route(CREDENTIALS_PATH, async (req, res) => {
+    if (rejected(req, res)) return
+    if (req.method !== 'GET') {
+      sendMethodNotAllowed(res, 'GET')
+      return
+    }
+    const host = typeof req.headers.host === 'string' ? req.headers.host : ''
+    if (host === '' || connection?.authenticatedUrl === undefined) {
+      sendJson(res, 503, { error: 'host connection is not available for credential exchange' })
+      return
+    }
+    const protocol = (ctx as unknown as { webServer?: { protocol?: string } }).webServer?.protocol ?? 'http:'
+    const credentials: CompanionCredentials = { launchUrl: connection.authenticatedUrl(`${protocol}//${host}/`) }
+    sendJson(res, 200, credentials)
   })
 
   route(TEST_PATH, async (req, res) => {

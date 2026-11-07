@@ -2,9 +2,18 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
     "paths": {
-      "@dsh-companion/protocol": ["../../packages/companion-protocol/src/index.ts"]
+      "@dsh-companion/protocol": [
+        "../../packages/companion-protocol/src/index.ts"
+      ]
     }
   },
-  "include": ["index.ts", "src", "../../packages/companion-protocol/src"]
+  "include": [
+    "index.ts",
+    "src",
+    "../../packages/companion-protocol/src"
+  ]
 }
