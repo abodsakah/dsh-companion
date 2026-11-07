@@ -4,6 +4,8 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import type { CompanionHealth, CompanionPendingItem } from '@dsh-companion/protocol'
 import { ActionButton, PressSpring, StatusDot } from '../ui'
+import { LogPanel } from '../LogPanel'
+import { log } from '../log'
 import type { CompanionApi } from '../api'
 
 const POLL_INTERVAL_MS = 30_000
@@ -33,6 +35,7 @@ export function HomeScreen(
       setItems(nextPending.items)
       setError(undefined)
     } catch (cause) {
+      log(`refresh failed: ${String(cause)}`)
       setError(String(cause))
     } finally {
       setRefreshing(false)
@@ -100,6 +103,7 @@ export function HomeScreen(
               </Text>
             </View>
           }
+          ListFooterComponent={<LogPanel />}
           renderItem={({ item }) => (
             <View style={styles.item}>
               <Text style={styles.itemKind}>{item.kind === 'approval' ? 'PERMISSION' : 'QUESTION'}</Text>

@@ -5,6 +5,7 @@ import type {
   CompanionPendingItem,
   CompanionTestReceipt,
 } from '@dsh-companion/protocol'
+import { log } from './log'
 
 export class CompanionApiError extends Error {
   constructor(readonly status: number, message: string) {
@@ -19,23 +20,32 @@ export class CompanionApi {
   ) {}
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await fetch(`${this.hostUrl.replace(/\/+$/, '')}${path}`, {
-      ...init,
-      headers: {
-        ...(init?.headers ?? {}),
-        ...(this.token === '' ? {} : { authorization: `Bearer ${this.token}` }),
-        ...(init?.body === undefined ? {} : { 'content-type': 'application/json' }),
-      },
-    })
-    const text = await response.text()
-    const body: unknown = text === '' ? undefined : JSON.parse(text)
-    if (!response.ok) {
-      const message = typeof body === 'object' && body !== null && 'error' in body
-        ? String((body as { error: unknown }).error)
-        : `HTTP ${String(response.status)}`
-      throw new CompanionApiError(response.status, message)
+    const url = `${this.hostUrl.replace(/\/+$/, '')}${path}`
+    log(`→ ${init?.method ?? 'GET'} ${url}`)
+    try {
+      const response = await fetch(url, {
+        ...init,
+        headers: {
+          ...(init?.headers ?? {}),
+          ...(this.token === '' ? {} : { authorization: `Bearer ${this.token}` }),
+          ...(init?.body === undefined ? {} : { 'content-type': 'application/json' }),
+        },
+      })
+      const text = await response.text()
+      log(`← ${String(response.status)} ${url} ${text.slice(0, 500)}`)
+      const body: unknown = text === '' ? undefined : JSON.parse(text)
+      if (!response.ok) {
+        const message = typeof body === 'object' && body !== null && 'error' in body
+          ? String((body as { error: unknown }).error)
+          : `HTTP ${String(response.status)}`
+        throw new CompanionApiError(response.status, message)
+      }
+      return body as T
+    } catch (cause) {
+      if (cause instanceof CompanionApiError) throw cause
+      log(`✗ request failed ${url}: ${String(cause)} ${cause instanceof Error ? cause.stack ?? '' : ''}`)
+      throw cause
     }
-    return body as T
   }
 
   health(): Promise<CompanionHealth> {

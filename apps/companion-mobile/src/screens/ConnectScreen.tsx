@@ -10,6 +10,8 @@ import {
 } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { PressSpring } from '../ui'
+import { LogPanel } from '../LogPanel'
+import { log } from '../log'
 import type { CompanionSettings } from '../settings'
 
 export function ConnectScreen(
@@ -26,11 +28,17 @@ export function ConnectScreen(
       setError('Host URL and companion token are required')
       return
     }
+    log(`connect: hostUrl=${JSON.stringify(hostUrl)} tokenLength=${String(companionToken.length)} expoProjectId=${JSON.stringify(expoProjectId)}`)
     setBusy(true)
     setError(undefined)
     const failure = await onConnect({ hostUrl, companionToken, expoProjectId })
     setBusy(false)
-    if (failure !== undefined) setError(failure)
+    if (failure !== undefined) {
+      log(`connect: failed — ${failure}`)
+      setError(failure)
+    } else {
+      log('connect: success')
+    }
   }
 
   return (
@@ -80,6 +88,7 @@ export function ConnectScreen(
               </View>
             </PressSpring>
             {error !== undefined ? <Text style={styles.error}>{error}</Text> : undefined}
+            <LogPanel expanded />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
