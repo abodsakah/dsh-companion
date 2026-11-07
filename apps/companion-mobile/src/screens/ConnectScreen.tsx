@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import {
   KeyboardAvoidingView,
+  Pressable,
   Platform,
   ScrollView,
   StyleSheet,
@@ -83,9 +84,16 @@ export function ConnectScreen(
               />
             </View>
             <PressSpring>
-              <View style={[styles.button, busy ? styles.buttonMuted : undefined]}>
-                <Text style={styles.buttonLabel}>{busy ? 'Connecting…' : 'Connect'}</Text>
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() => { void connect() }}
+                style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+              >
+                <View style={[styles.button, busy ? styles.buttonMuted : undefined]}>
+                  <Text style={styles.buttonLabel}>{busy ? 'Connecting…' : 'Connect'}</Text>
+                </View>
+              </Pressable>
             </PressSpring>
             {error !== undefined ? <Text style={styles.error}>{error}</Text> : undefined}
             <LogPanel expanded />
