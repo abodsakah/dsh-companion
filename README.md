@@ -66,12 +66,13 @@ dsh plugin --profile web add /path/to/dsh-companion/packages/dsh-companion
 
 ### 3. Configure it
 
-Add a row to your web profile's `cordis.patch.yml` (the profile directory `dsh plugin --profile web` manages):
+Add an `insert` row to your web profile's `cordis.patch.yml` (the profile directory `dsh plugin --profile web` manages, e.g. `~/.dsh/profiles/web/cordis.patch.yml`). New plugins must be *inserted* — a bare `id`/`name` row only patches an existing entry and does nothing:
 
 ```yaml
-- id: dsh-companion
-  name: dsh-companion
-  config:
+- insert:
+    - id: dsh-companion
+      name: dsh-companion
+      config:
     expoProjectId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"   # your Expo project id
     companionToken: "a long random secret"                  # the app's bearer token
     contentMode: generic          # generic | detailed
