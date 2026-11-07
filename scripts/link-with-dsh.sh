@@ -12,7 +12,7 @@
 #   5. prints how to start Expo from the linked folder
 set -euo pipefail
 
-DSH_TAG="v0.2.2-rc.1"
+DSH_TAG="dsh-v0.2.2-rc.1"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/apps/companion-mobile"
 CLONE="${1:-$ROOT/deepseek-harness}"
