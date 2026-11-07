@@ -33,7 +33,7 @@ Key behaviors:
 
 1. **Zero interference while you're at the web UI.** The plugin registers waterfall listeners on `user-questions/request` and `approval/request` and *delegates* (`next()`). When a browser is connected and answers, the plugin never claims anything.
 2. **Holds when nobody can answer.** When the chain would fail (`NO_PROVIDER` for questions, fail-closed `'unavailable'` for approvals), the plugin holds the request for `holdTimeoutMs`, pushes it to your devices with tappable actions, and resolves it from the phone. This is exactly the "screen off / Chrome closed" case — today those requests simply fail.
-3. **General by design.** The plugin exposes a `ctx.companion` service (`notify(event)`) and a `companion/notify` Cordis event, so *future* plugins can push anything (jobs finished, schedule follow-ups, custom alerts) without touching this codebase. Event kinds are open-ended (`custom`).
+3. **General by design.** The plugin exposes a `companion/notify` Cordis event (`ctx.emit('companion/notify', event)`), so *future* plugins can push anything (jobs finished, schedule follow-ups, custom alerts) without touching this codebase. Event kinds are open-ended (`custom`).
 4. **Privacy mode.** `contentMode: generic` (default) sends only a generic alert ("A permission request needs your decision") through Expo's relay; the real content stays on your machine and the app fetches it over your authenticated Tailscale connection. `contentMode: detailed` puts titles/bodies in the push.
 
 ## Repository layout
@@ -132,7 +132,6 @@ The app registers a `companion.pending` notification category: **Approve / Rejec
 ## Extending (the "more stuff later" part)
 
 - Emit from any plugin: `ctx.emit('companion/notify', { kind: 'custom', title, body, data })`
-- Or call the service: `ctx.companion.notify({ ... })`
 - Add a new *source* by registering one more listener in `packages/dsh-companion/src/sources.ts` — the bus, devices, routes, and app rendering are kind-agnostic (unknown kinds render as generic cards).
 
 ## Notes & limitations

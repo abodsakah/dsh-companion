@@ -1,6 +1,6 @@
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import { Config, resolveConfig, type ResolvedConfig } from './config.js'
 import { CompanionBus } from './bus.js'
 import { DeviceRegistry } from './devices.js'
@@ -29,7 +29,6 @@ export function apply(ctx: Context, config: unknown): void {
   const devices = new DeviceRegistry(storeDir(ctx))
   const held = new HeldRegistry()
   const bus = new CompanionBus(ctx, devices, resolved)
-  ;(ctx as unknown as Record<string, unknown>).companion = bus
   registerSources(ctx, resolved, bus, held)
   registerRoutes(ctx, resolved, devices, held, bus)
 }

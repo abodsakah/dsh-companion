@@ -1,4 +1,4 @@
-import { Service, type Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import type { CompanionEvent } from '@dsh-companion/protocol'
 import { sendExpoPush, type ExpoPushReport } from './expo.js'
 import type { DeviceRegistry } from './devices.js'
@@ -27,15 +27,18 @@ export interface CompanionDispatch extends ExpoPushReport {
   readonly devices: number
 }
 
-/** The general notification bus: `ctx.companion.notify(event)` from any plugin. */
-export class CompanionBus extends Service {
-  static readonly inject = [] as const
+/**
+ * The general notification bus. Deliberately NOT a Cordis Service: the plugin
+ * must not construct classes from its own cordis copy, because a profile-linked
+ * dev workspace resolves a second cordis instance next to the host's.
+ * Reach it via the `companion/notify` event instead.
+ */
+export class CompanionBus {
   private readonly devices: DeviceRegistry
   private readonly config: ResolvedConfig
   private readonly log: (message: string) => void
 
   constructor(ctx: Context, devices: DeviceRegistry, config: ResolvedConfig) {
-    super(ctx, 'companion')
     this.devices = devices
     this.config = config
     this.log = (message: string) => { ctx.logger('dsh-companion').info(message) }
