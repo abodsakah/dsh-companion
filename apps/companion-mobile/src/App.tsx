@@ -8,7 +8,7 @@ import { HomeScreen } from './screens/HomeScreen'
 import { SessionsScreen } from './screens/SessionsScreen'
 import { ChatScreen } from './screens/ChatScreen'
 import { acquirePushToken, setupPush } from './push'
-import { createDshRuntime, type DshRuntime } from './dsh/runtime'
+import type { DshRuntime } from './dsh/runtime'
 import { exchangeLaunchToken, launchTokenFromUrl } from './dsh/credentials'
 import {
   loadDeviceId,
@@ -93,6 +93,9 @@ export default function App(): React.ReactElement {
     const launchToken = launchTokenFromUrl(credentials.launchUrl)
     if (launchToken === undefined) throw new Error('host returned a launch URL without a token')
     const cookie = await exchangeLaunchToken(credentials.hostUrlForClient, launchToken)
+    log('runtime: loading DSH client modules')
+    const { createDshRuntime } = await import('./dsh/runtime')
+    log('runtime: DSH client modules loaded')
     const next = createDshRuntime({ hostUrl: credentials.hostUrlForClient, cookie })
     return next
   }
