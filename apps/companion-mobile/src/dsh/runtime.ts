@@ -1,14 +1,23 @@
+import './module-loader'
 import { Context } from '@deepseek-ai/cordis'
-import { installConnection } from '@deepseek-ai/dsh-client-connection/client'
-import { apply as typertRegistryClient } from '@deepseek-ai/dsh-typert-registry/client'
-import { apply as gatewayClient } from '@deepseek-ai/dsh-api-gateway/client'
-import { apply as fileUploadClient } from '@deepseek-ai/dsh-client-file-upload/client'
-import { apply as sessionsClient, type ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
+import '@deepseek-ai/dsh-client-connection/client'
+import '@deepseek-ai/dsh-typert-registry/client'
+import '@deepseek-ai/dsh-api-gateway/client'
+import '@deepseek-ai/dsh-client-file-upload/client'
+import '@deepseek-ai/dsh-api-session-controller/client'
 import { TYPERT as SESSIONS_TYPERT } from '@deepseek-ai/dsh-api-session-controller/typert'
 import { TYPERT as COMMANDS_TYPERT } from '@deepseek-ai/dsh-commands/typert'
 import { TYPERT as SUBAGENTS_TYPERT } from '@deepseek-ai/dsh-subagent/typert'
+import { dshExports } from './module-loader'
 import { RnWebSocketAdapter } from './socket'
+import type {
+  ConnectionInstallOptions,
+  ConnectionWebSocket,
+} from '@deepseek-ai/dsh-client-connection/client'
+import type { ISessions, SessionEventLikeEntry } from '@deepseek-ai/dsh-api-session-controller/client'
 import { log } from '../log'
+
+export type { ISessions, SessionEventLikeEntry }
 
 export interface DshRuntimeOptions {
   readonly hostUrl: string
@@ -22,12 +31,22 @@ export interface DshRuntime {
   dispose(): void
 }
 
+type ApplyEntry = { apply: (ctx: Context) => void }
+
 /** Compose the DSH client runtime: typert registry → connection → gateway → file upload → sessions. */
 export function createDshRuntime(options: DshRuntimeOptions): DshRuntime {
   const hostUrl = options.hostUrl.replace(/\/+$/, '')
+  const connectionClient = dshExports<
+    { installConnection: (ctx: Context, options?: ConnectionInstallOptions) => void }
+  >('@deepseek-ai/dsh-client-connection')
+  const typertRegistryClient = dshExports<ApplyEntry>('@deepseek-ai/dsh-typert-registry')
+  const gatewayClient = dshExports<ApplyEntry>('@deepseek-ai/dsh-api-gateway')
+  const fileUploadClient = dshExports<ApplyEntry>('@deepseek-ai/dsh-client-file-upload')
+  const sessionsClient = dshExports<ApplyEntry>('@deepseek-ai/dsh-api-session-controller')
+
   const ctx = new Context({})
 
-  ctx.plugin({ name: 'typert-registry-client', apply: typertRegistryClient, inject: [] })
+  ctx.plugin({ name: 'typert-registry-client', apply: typertRegistryClient.apply, inject: [] })
   const typert = (ctx as unknown as {
     typert: { remotes: { register(contribution: unknown): unknown } }
   }).typert
@@ -35,7 +54,7 @@ export function createDshRuntime(options: DshRuntimeOptions): DshRuntime {
   typert.remotes.register(COMMANDS_TYPERT)
   typert.remotes.register(SUBAGENTS_TYPERT)
 
-  installConnection(ctx, {
+  const transport: ConnectionInstallOptions = {
     interactions: 'answer',
     transport: {
       ownsHost: true,
@@ -49,28 +68,21 @@ export function createDshRuntime(options: DshRuntimeOptions): DshRuntime {
         if (options.cookie !== undefined) headers.cookie = options.cookie
         return fetch(url, { ...init, headers })
       },
-      createWebSocket: (url: string) => new RnWebSocketAdapter(url, options.cookie),
+      createWebSocket: (url: string): ConnectionWebSocket => new RnWebSocketAdapter(url, options.cookie),
     },
-  })
+  }
+  connectionClient.installConnection(ctx, transport)
 
-  ctx.plugin({
-    name: 'api-gateway-client',
-    apply: gatewayClient,
-    inject: ['typert', 'connection'],
-  })
-  ctx.plugin({
-    name: 'file-upload-client',
-    apply: fileUploadClient,
-    inject: ['remote'],
-  })
+  ctx.plugin({ name: 'api-gateway-client', apply: gatewayClient.apply, inject: ['typert', 'connection'] })
+  ctx.plugin({ name: 'file-upload-client', apply: fileUploadClient.apply, inject: ['remote'] })
   ctx.plugin({
     name: 'sessions-client',
-    apply: sessionsClient,
+    apply: sessionsClient.apply,
     inject: ['connection', 'fileUpload', 'typert', 'remote', 'remote.commands', 'remote.session', 'remote.subagents'],
   })
 
   const connection = (ctx as unknown as {
-    connection: { reconnect(): void; generation: { getSnapshot(): unknown } }
+    connection: { reconnect(): void }
   }).connection
   if (connection === undefined) {
     log('runtime: connection service missing after install')
