@@ -9,7 +9,7 @@ import { registerRoutes } from './routes.js'
 import { registerSources } from './sources.js'
 
 export const name = 'dsh-companion'
-export const inject = ['webServer']
+export const inject = ['webServer', 'connection']
 export { Config }
 
 export interface ProfileContextLike {
@@ -17,7 +17,7 @@ export interface ProfileContextLike {
 }
 
 function storeDir(ctx: Context): string {
-  const profile = (ctx as unknown as { profileContext?: ProfileContextLike }).profileContext
+  const profile = ctx.get('profileContext') as ProfileContextLike | undefined
   return profile?.dir !== undefined ? join(profile.dir, 'dsh-companion') : join(homedir(), '.dsh-companion')
 }
 
