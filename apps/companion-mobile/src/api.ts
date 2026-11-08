@@ -1,6 +1,5 @@
 import type {
   CompanionAnswerReceipt,
-  CompanionCredentials,
   CompanionDeviceReceipt,
   CompanionHealth,
   CompanionPendingItem,
@@ -16,7 +15,7 @@ export class CompanionApiError extends Error {
 
 export class CompanionApi {
   constructor(
-    private readonly hostUrl: string,
+    readonly hostUrl: string,
     private readonly token: string,
   ) {}
 
@@ -73,12 +72,5 @@ export class CompanionApi {
 
   test(): Promise<CompanionTestReceipt> {
     return this.request<CompanionTestReceipt>('/dsh-companion/test', { method: 'POST' })
-  }
-
-  credentials(): Promise<CompanionCredentials & { readonly hostUrlForClient: string }> {
-    return this.request<CompanionCredentials>('/dsh-companion/credentials').then(credentials => ({
-      ...credentials,
-      hostUrlForClient: this.hostUrl,
-    }))
   }
 }

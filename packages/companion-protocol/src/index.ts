@@ -9,6 +9,7 @@ export const PENDING_PATH = `${COMPANION_API_PREFIX}/pending`
 export const ANSWER_PATH = `${COMPANION_API_PREFIX}/answer`
 export const TEST_PATH = `${COMPANION_API_PREFIX}/test`
 export const CREDENTIALS_PATH = `${COMPANION_API_PREFIX}/credentials`
+export const API_CREDENTIAL_PATH = `${COMPANION_API_PREFIX}/api-credential`
 
 export const COMPANION_PROTOCOL_VERSION = 1
 
@@ -94,6 +95,12 @@ export interface CompanionTestReceipt {
 /** Launch URL minted by the host for the API credential exchange. */
 export interface CompanionCredentials {
   readonly launchUrl: string
+}
+
+/** Signed API cookie minted in-process against the caller's authority. */
+export interface CompanionApiCredential {
+  readonly cookie: string
+  readonly baseUrl: string
 }
 
 export interface CompanionError {

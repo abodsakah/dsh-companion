@@ -9,7 +9,7 @@ import { SessionsScreen } from './screens/SessionsScreen'
 import { ChatScreen } from './screens/ChatScreen'
 import { acquirePushToken, setupPush } from './push'
 import type { DshRuntime } from './dsh/runtime'
-import { exchangeLaunchToken, launchTokenFromUrl } from './dsh/credentials'
+import { fetchApiCredential } from './dsh/credentials'
 import {
   loadDeviceId,
   loadSettings,
@@ -88,15 +88,12 @@ export default function App(): React.ReactElement {
     return cleanup
   }, [api, registerPushToken, answerFromNotification, openPending, settings?.expoProjectId])
 
-  const bootRuntime = async (candidate: CompanionApi): Promise<DshRuntime> => {
-    const credentials = await candidate.credentials()
-    const launchToken = launchTokenFromUrl(credentials.launchUrl)
-    if (launchToken === undefined) throw new Error('host returned a launch URL without a token')
-    const cookie = await exchangeLaunchToken(credentials.hostUrlForClient, launchToken)
+  const bootRuntime = async (candidate: CompanionApi, companionToken: string): Promise<DshRuntime> => {
+    const credential = await fetchApiCredential(fetch, candidate.hostUrl, companionToken)
     log('runtime: loading DSH client modules')
     const { createDshRuntime } = await import('./dsh/runtime')
     log('runtime: DSH client modules loaded')
-    const next = createDshRuntime({ hostUrl: credentials.hostUrlForClient, cookie })
+    const next = createDshRuntime({ hostUrl: credential.baseUrl, cookie: credential.cookie })
     return next
   }
 
@@ -110,7 +107,7 @@ export default function App(): React.ReactElement {
     }
     let nextRuntime: DshRuntime | undefined
     try {
-      nextRuntime = await bootRuntime(candidate)
+      nextRuntime = await bootRuntime(candidate, next.companionToken)
     } catch (cause) {
       log(`connect: dsh runtime boot failed ${String(cause)}`)
       return `Companion connected, but the chat runtime failed: ${String(cause)}`

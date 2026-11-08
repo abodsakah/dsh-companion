@@ -1,10 +1,12 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import {
   ANSWER_PATH,
+  API_CREDENTIAL_PATH,
   COMPANION_PROTOCOL_VERSION,
-  CREDENTIALS_PATH,
   DEVICES_PATH,
   DEVICE_UNREGISTER_PATH,
   HEALTH_PATH,
@@ -13,7 +15,7 @@ import {
   parseAnswerRequest,
   parseDeviceRegistration,
   parseUnregisterRequest,
-  type CompanionCredentials,
+  type CompanionApiCredential,
   type CompanionHealth,
 } from '@dsh-companion/protocol'
 import type { DeviceRegistry } from './devices.js'
@@ -177,7 +179,7 @@ export function registerRoutes(
     sendJson(res, 200, { ok: outcome === 'answered', outcome })
   })
 
-  route(CREDENTIALS_PATH, async (req, res) => {
+  route(API_CREDENTIAL_PATH, async (req, res) => {
     if (rejected(req, res)) return
     if (req.method !== 'GET') {
       sendMethodNotAllowed(res, 'GET')
@@ -189,8 +191,47 @@ export function registerRoutes(
       return
     }
     const protocol = (ctx as unknown as { webServer?: { protocol?: string } }).webServer?.protocol ?? 'http:'
-    const credentials: CompanionCredentials = { launchUrl: connection.authenticatedUrl(`${protocol}//${host}/`) }
-    sendJson(res, 200, credentials)
+    const launchUrl = new URL(connection.authenticatedUrl(`${protocol}//${host}/`))
+    const launchToken = launchUrl.searchParams.get('token')
+    const address = req.socket.localAddress ?? host
+    const port = req.socket.localPort
+    if (launchToken === null || port === 0) {
+      sendJson(res, 503, { error: 'launch token or listener port unavailable' })
+      return
+    }
+    const path = `/connect?token=${encodeURIComponent(launchToken)}&interactions=answer`
+    const send = protocol === 'https:' ? httpsRequest : httpRequest
+    const exchange = await new Promise<{ readonly status: number; readonly setCookie?: readonly string[] }>((resolve) => {
+      const outgoing = send({
+        host: address,
+        port,
+        method: 'GET',
+        path,
+        headers: { host },
+        timeout: 10_000,
+      }, (incoming: IncomingMessage) => {
+        const raw = incoming.headers['set-cookie']
+        resolve({
+          status: incoming.statusCode ?? 0,
+          ...(Array.isArray(raw) ? { setCookie: raw } : raw === undefined ? {} : { setCookie: [raw] }),
+        })
+        incoming.resume()
+      })
+      outgoing.on('timeout', () => { outgoing.destroy(); resolve({ status: 0 }) })
+      outgoing.on('error', () => { resolve({ status: 0 }) })
+      outgoing.end()
+    })
+    if (exchange.status !== 302 || exchange.setCookie === undefined || exchange.setCookie.length === 0) {
+      sendJson(res, 502, { error: `credential exchange failed: HTTP ${String(exchange.status)}` })
+      return
+    }
+    const cookie = exchange.setCookie[0]?.split(';')[0] ?? ''
+    if (cookie === '') {
+      sendJson(res, 502, { error: 'credential exchange returned no cookie value' })
+      return
+    }
+    const credential: CompanionApiCredential = { cookie, baseUrl: `${protocol}//${host}` }
+    sendJson(res, 200, credential)
   })
 
   route(TEST_PATH, async (req, res) => {
