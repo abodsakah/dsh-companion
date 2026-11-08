@@ -34,6 +34,12 @@ const externals: Record<string, () => unknown> = {
   'zustand/middleware': () => require('zustand/middleware'),
   'zustand/shallow': () => require('zustand/shallow'),
   immer: () => require('immer'),
+  '@deepseek-ai/dsh-client-store': () => require('@deepseek-ai/dsh-client-store'),
+  '@deepseek-ai/dsh-deque': () => require('@deepseek-ai/dsh-deque'),
+  '@deepseek-ai/dsh-brand': () => require('@deepseek-ai/dsh-brand'),
+  '@deepseek-ai/dsh-timeout': () => require('@deepseek-ai/dsh-timeout'),
+  '@deepseek-ai/dsh-util-crypto': () => require('@deepseek-ai/dsh-util-crypto'),
+  '@deepseek-ai/dsh-scope': () => require('@deepseek-ai/dsh-scope'),
 }
 
 function dshRequire(spec: string): unknown {
