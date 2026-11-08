@@ -9,7 +9,7 @@ import { SessionsScreen } from './screens/SessionsScreen'
 import { ChatScreen } from './screens/ChatScreen'
 import { acquirePushToken, setupPush } from './push'
 import type { DshRuntime } from './dsh/runtime'
-import { fetchApiCredential } from './dsh/credentials'
+import { exchangeLaunchTokenViaCookieJar, fetchApiCredential } from './dsh/credentials'
 import {
   loadDeviceId,
   loadSettings,
@@ -88,13 +88,21 @@ export default function App(): React.ReactElement {
     return cleanup
   }, [api, registerPushToken, answerFromNotification, openPending, settings?.expoProjectId])
 
-  const bootRuntime = async (candidate: CompanionApi, companionToken: string): Promise<DshRuntime> => {
-    const credential = await fetchApiCredential(fetch, candidate.hostUrl, companionToken)
+  const bootRuntime = async (candidate: CompanionApi, settings: CompanionSettings): Promise<DshRuntime> => {
+    const hostUrl = candidate.hostUrl
+    if (settings.launchToken !== '') {
+      log('runtime: using pasted launch token (cookie jar)')
+      await exchangeLaunchTokenViaCookieJar(fetch, hostUrl, settings.launchToken)
+      log('runtime: loading DSH client modules')
+      const { createDshRuntime } = await import('./dsh/runtime')
+      log('runtime: DSH client modules loaded')
+      return createDshRuntime({ hostUrl })
+    }
+    const credential = await fetchApiCredential(fetch, hostUrl, settings.companionToken)
     log('runtime: loading DSH client modules')
     const { createDshRuntime } = await import('./dsh/runtime')
     log('runtime: DSH client modules loaded')
-    const next = createDshRuntime({ hostUrl: credential.baseUrl, cookie: credential.cookie })
-    return next
+    return createDshRuntime({ hostUrl: credential.baseUrl, cookie: credential.cookie })
   }
 
   const connect = async (next: CompanionSettings): Promise<string | undefined> => {
@@ -107,7 +115,7 @@ export default function App(): React.ReactElement {
     }
     let nextRuntime: DshRuntime | undefined
     try {
-      nextRuntime = await bootRuntime(candidate, next.companionToken)
+      nextRuntime = await bootRuntime(candidate, next)
     } catch (cause) {
       log(`connect: dsh runtime boot failed ${String(cause)}`)
       return `Companion connected, but the chat runtime failed: ${String(cause)}`
@@ -125,7 +133,7 @@ export default function App(): React.ReactElement {
   const disconnect = async (): Promise<void> => {
     runtime?.dispose()
     setRuntime(undefined)
-    await saveSettings({ hostUrl: '', companionToken: '', expoProjectId: '' })
+    await saveSettings({ hostUrl: '', companionToken: '', expoProjectId: '', launchToken: '' })
     apiRef.current = undefined
     setApi(undefined)
     setSettings(undefined)

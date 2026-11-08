@@ -8,8 +8,8 @@ export class RnWebSocketAdapter implements ConnectionWebSocket {
   private readonly socket: WebSocket
   private readonly listeners = new Map<SocketEvent, Set<Listener>>()
 
-  constructor(url: string, cookie: string) {
-    this.socket = new WebSocket(url, { headers: { cookie } } as unknown as string[])
+  constructor(url: string, cookie?: string) {
+    this.socket = new WebSocket(url, cookie === undefined ? undefined : { headers: { cookie } } as unknown as string[])
     const dispatch = (event: SocketEvent, data?: unknown): void => {
       for (const listener of [...(this.listeners.get(event) ?? [])]) {
         listener({ ...(data === undefined ? {} : { data }) })

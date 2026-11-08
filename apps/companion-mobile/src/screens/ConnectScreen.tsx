@@ -21,6 +21,7 @@ export function ConnectScreen(
   const [hostUrl, setHostUrl] = useState(initial?.hostUrl ?? '')
   const [companionToken, setCompanionToken] = useState(initial?.companionToken ?? '')
   const [expoProjectId, setExpoProjectId] = useState(initial?.expoProjectId ?? '')
+  const [launchToken, setLaunchToken] = useState(initial?.launchToken ?? '')
   const [error, setError] = useState<string | undefined>(undefined)
   const [busy, setBusy] = useState(false)
 
@@ -32,7 +33,7 @@ export function ConnectScreen(
     log(`connect: hostUrl=${JSON.stringify(hostUrl)} tokenLength=${String(companionToken.length)} expoProjectId=${JSON.stringify(expoProjectId)}`)
     setBusy(true)
     setError(undefined)
-    const failure = await onConnect({ hostUrl, companionToken, expoProjectId })
+    const failure = await onConnect({ hostUrl, companionToken, expoProjectId, launchToken })
     setBusy(false)
     if (failure !== undefined) {
       log(`connect: failed — ${failure}`)
@@ -71,6 +72,16 @@ export function ConnectScreen(
                 placeholderTextColor="#4a5164"
                 value={companionToken}
                 onChangeText={setCompanionToken}
+              />
+              <Text style={styles.label}>DSH LAUNCH TOKEN (OPTIONAL)</Text>
+              <TextInput
+                style={styles.input}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="the ?token=… from the dsh web URL"
+                placeholderTextColor="#4a5164"
+                value={launchToken}
+                onChangeText={setLaunchToken}
               />
               <Text style={styles.label}>EXPO PROJECT ID</Text>
               <TextInput

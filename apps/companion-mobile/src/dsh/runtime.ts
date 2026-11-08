@@ -12,7 +12,7 @@ import { log } from '../log'
 
 export interface DshRuntimeOptions {
   readonly hostUrl: string
-  readonly cookie: string
+  readonly cookie?: string
 }
 
 export interface DshRuntime {
@@ -43,13 +43,11 @@ export function createDshRuntime(options: DshRuntimeOptions): DshRuntime {
       fetch: (input: string | URL, init?: RequestInit) => {
         const route = String(input)
         const url = route.startsWith('/') ? `${hostUrl}${route}` : route
-        return fetch(url, {
-          ...init,
-          headers: {
-            ...(init?.headers as Record<string, string> | undefined),
-            cookie: options.cookie,
-          },
-        })
+        const headers: Record<string, string> = {
+          ...(init?.headers as Record<string, string> | undefined),
+        }
+        if (options.cookie !== undefined) headers.cookie = options.cookie
+        return fetch(url, { ...init, headers })
       },
       createWebSocket: (url: string) => new RnWebSocketAdapter(url, options.cookie),
     },
