@@ -13,9 +13,9 @@ export async function exchangeLaunchTokenViaCookieJar(
 ): Promise<void> {
   const url = `${hostUrl.replace(/\/+$/, '')}/connect?token=${encodeURIComponent(launchToken)}&interactions=answer`
   const response = await fetchImpl(url)
-  log(`auth: /connect via cookie jar → HTTP ${String(response.status)}`)
-  if (response.status !== 302 && response.status !== 200 && response.status !== 204) {
-    throw new Error(`/connect exchange failed: HTTP ${String(response.status)}`)
+  log(`auth: /connect via cookie jar → HTTP ${String(response.status)} (final, after redirect follow)`)
+  if (response.status === 401 || response.status === 403 || response.status === 400) {
+    throw new Error(`launch token rejected: HTTP ${String(response.status)}`)
   }
 }
 
