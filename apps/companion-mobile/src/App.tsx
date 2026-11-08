@@ -120,7 +120,7 @@ export default function App(): React.ReactElement {
       log(`connect: dsh runtime boot failed ${String(cause)}`)
       return `Companion connected, but the chat runtime failed: ${String(cause)}`
     }
-    await saveSettings(next)
+    await saveSettings({ ...next, launchToken: '' })
     apiRef.current = candidate
     setApi(candidate)
     setSettings(next)
@@ -133,34 +133,31 @@ export default function App(): React.ReactElement {
   const disconnect = async (): Promise<void> => {
     runtime?.dispose()
     setRuntime(undefined)
-    await saveSettings({ hostUrl: '', companionToken: '', expoProjectId: '', launchToken: '' })
-    apiRef.current = undefined
-    setApi(undefined)
-    setSettings(undefined)
+    setView({ name: 'sessions' })
   }
 
   if (!booted) return <></>
-  if (settings === undefined || api === undefined) {
+  if (api === undefined || runtime === undefined) {
     return <ConnectScreen initial={settings} onConnect={connect} />
   }
   return (
     <>
       <StatusBar style="light" />
-      {runtime !== undefined && view.name === 'sessions'
+      {view.name === 'sessions'
         ? <SessionsScreen
             sessions={runtime.sessions}
             onOpen={sessionId => { setView({ name: 'chat', sessionId }) }}
             onCompanion={() => { setView({ name: 'companion' }) }}
           />
         : undefined}
-      {runtime !== undefined && view.name === 'chat'
+      {view.name === 'chat'
         ? <ChatScreen
             sessions={runtime.sessions}
             sessionId={view.sessionId}
             onBack={() => { setView({ name: 'sessions' }) }}
           />
         : undefined}
-      {view.name === 'companion' || runtime === undefined
+      {view.name === 'companion'
         ? <HomeScreen api={api} onDisconnect={() => { void disconnect() }} />
         : undefined}
     </>

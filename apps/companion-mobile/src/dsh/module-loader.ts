@@ -34,7 +34,6 @@ const externals: Record<string, () => unknown> = {
   'zustand/middleware': () => require('zustand/middleware'),
   'zustand/shallow': () => require('zustand/shallow'),
   immer: () => require('immer'),
-  'mime-types': () => require('mime-types'),
 }
 
 function dshRequire(spec: string): unknown {
