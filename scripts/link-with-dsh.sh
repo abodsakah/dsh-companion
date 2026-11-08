@@ -49,8 +49,11 @@ fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n')
 console.log('workspace deps injected')
 EOF
 
-echo "==> installing harness workspace (this takes a while)"
+echo "==> configuring pnpm for Metro (hoisted layout)"
 cd "$CLONE"
+printf 'node-linker=hoisted\nshamefully-hoist=true\n' >> .npmrc
+
+echo "==> installing harness workspace (this takes a while)"
 pnpm install
 
 echo "==> building client libraries"
